@@ -249,7 +249,15 @@
         const moduleNames = { 'activity': '活動記錄', 'core': '核芯統計', 'recipe': '食譜統計', 'species': '物種筆記', 'market': '市場交易' };
         let linkSettingsData = { activity: [], core: [], recipe: [], species: [], market: [] };
 
-        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
+        const firebaseConfig = {
+            apiKey: "AIzaSyAAcTj-Jy7AuQtCF7HHiTDO8_3u8sTL3oQ",
+            authDomain: "appdashboard-54186.firebaseapp.com",
+            projectId: "appdashboard-54186",
+            storageBucket: "appdashboard-54186.firebasestorage.app",
+            messagingSenderId: "1040759578517",
+            appId: "1:1040759578517:web:8daa9d7939c54f2adf209c",
+            measurementId: "G-WLW4ZDWLL5"
+        };
         let app, auth, db;
         try {
             if (Object.keys(firebaseConfig).length > 0) {
