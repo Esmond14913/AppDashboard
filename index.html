@@ -1,435 +1,471 @@
 <!DOCTYPE html>
 <html lang="zh-Hant">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>《明日之後小秘書》App 設計理念與技術開發指南</title>
-<script src="https://cdn.tailwindcss.com"></script>
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<style>
-/* 確保圖表容器在響應式佈局中能正確限制尺寸，防止頁面過度滾動 */
-.chart-container {
-    position: relative;
-    width: 100%;
-    max-width: 500px;
-    margin-left: auto;
-    margin-right: auto;
-    height: 300px;
-    max-height: 400px;
-}
-@media (min-width: 768px) {
-    .chart-container {
-        height: 350px;
-    }
-}
-
-/* 毛玻璃特效基礎樣式 */
-.glass-effect {
-    background: rgba(255, 255, 255, 0.6);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    border: 1px solid rgba(255, 255, 255, 0.3);
-    box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.07);
-}
-
-/* 深色模式毛玻璃特效（用於預覽面板） */
-.glass-effect-dark {
-    background: rgba(15, 23, 42, 0.6);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
-}
-
-/* 背景裝飾：輕微的點狀網格 */
-body {
-    background-color: #f8fafc;
-    background-image: radial-gradient(#e2e8f0 1px, transparent 1px);
-    background-size: 20px 20px;
-}
-</style>
-</head>
-<body class="text-slate-800 font-sans antialiased selection:bg-indigo-200 selection:text-indigo-900">
-
-<!-- Chosen Palette: Slate (中性背景) + Indigo, Amber, Emerald, Blue (功能語意色) -->
-<!-- Application Structure Plan: 
-    此 SPA 採用側邊導航與滾動儀表板佈局。
-    結構分為四個主題區塊：核心定位（Overview）、視覺體驗（UI/UX）、技術架構（Tech Stack）與開發清單（Checklist）。
-    這種結構將靜態文件轉化為互動式教學工具，讓開發者能即時操作「毛玻璃特效」參數、切換「功能語意色」，並透過動態圓環圖追蹤功能實作進度。
--->
-<!-- Visualization & Content Choices: 
-    1. 核心定位 -> 目標：資訊傳達 -> 方式：互動式文字卡片 -> 理由：點擊展開細節可避免一次給予過多資訊。
-    2. UI/UX 實驗室 -> 目標：動態呈現 -> 方式：滑桿與色塊切換 -> 理由：直觀證明設計理論。
-    3. 技術架構 -> 目標：結構組織 -> 方式：層級式卡片與懸停解說 -> 理由：清晰呈現前端、驗證、資料庫的職責。
-    4. 功能清單 -> 目標：追蹤進度 -> 方式：CheckBox 連結 Chart.js 畫布 -> 理由：讓開發目標視覺化。
--->
-<!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
-
-<div class="flex flex-col md:flex-row min-h-screen">
-
-    <!-- 側邊導航列 (Desktop 側邊, Mobile 頂部) -->
-    <nav class="md:w-64 glass-effect sticky top-0 md:h-screen z-50 flex flex-col justify-between border-r border-slate-200 md:border-b-0 border-b">
-        <div class="p-6">
-            <div class="text-2xl font-bold text-indigo-900 mb-2 tracking-tight">小秘書指南 📖</div>
-            <div class="text-xs font-semibold text-slate-500 uppercase tracking-widest mb-8">v2.0 雲端同步版</div>
-            <ul class="flex md:flex-col gap-2 overflow-x-auto md:overflow-visible pb-2 md:pb-0">
-                <li><button onclick="scrollToSection('sec-overview')" class="nav-btn w-full text-left px-4 py-3 rounded-lg text-sm font-medium transition-colors bg-indigo-50 text-indigo-700" data-target="sec-overview">🎯 核心定位</button></li>
-                <li><button onclick="scrollToSection('sec-design')" class="nav-btn w-full text-left px-4 py-3 rounded-lg text-sm font-medium transition-colors hover:bg-slate-100 text-slate-600" data-target="sec-design">🎨 視覺與體驗</button></li>
-                <li><button onclick="scrollToSection('sec-tech')" class="nav-btn w-full text-left px-4 py-3 rounded-lg text-sm font-medium transition-colors hover:bg-slate-100 text-slate-600" data-target="sec-tech">⚙️ 技術架構</button></li>
-                <li><button onclick="scrollToSection('sec-progress')" class="nav-btn w-full text-left px-4 py-3 rounded-lg text-sm font-medium transition-colors hover:bg-slate-100 text-slate-600" data-target="sec-progress">✓ 開發進度</button></li>
-            </ul>
-        </div>
-        <div class="p-6 hidden md:block border-t border-slate-200 text-center">
-            <div class="text-xs text-slate-400">Design by 夜雨</div>
-        </div>
-    </nav>
-
-    <!-- 主要內容區 -->
-    <main class="flex-1 p-6 md:p-12 lg:p-16 overflow-y-auto">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>明日之後小秘書 - 功能面板</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap');
         
-        <header class="mb-16 max-w-4xl mx-auto">
-            <h1 class="text-4xl md:text-5xl font-extrabold text-slate-900 mb-6 leading-tight">《明日之後小秘書》<br><span class="text-transparent bg-clip-text bg-gradient-to-r from-indigo-500 to-emerald-500">App 設計理念與技術開發指南</span></h1>
-            <p class="text-lg text-slate-600 leading-relaxed">
-                本互動指南旨在拆解「明日之後小秘書」的功能邏輯與設計思維。透過下方的互動式區塊，您可以直接體驗其視覺原則、探索技術架構，並追蹤核心功能的實作進度。這將有助於開發者快速複製或延伸開發類似的遊戲輔助工具。
-            </p>
-        </header>
+        body {
+            font-family: 'Noto Sans TC', sans-serif;
+            background-color: #f3f4f6;
+            color: #1f2937;
+        }
 
-        <!-- 區塊 1: 核心定位 -->
-        <section id="sec-overview" class="mb-24 max-w-4xl mx-auto scroll-mt-24">
-            <h2 class="text-2xl font-bold text-slate-800 mb-4 border-b-2 border-indigo-100 pb-2 flex items-center gap-2"><span>🎯</span> 核心定位與設計原則</h2>
-            <p class="text-slate-600 mb-8">此區塊說明本應用的核心價值與三大設計支柱。點擊下方卡片以深入了解每項原則背後的邏輯與優勢。</p>
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+
+        .feature-card {
+            transition: all 0.3s ease;
+        }
+
+        .feature-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+
+        .admin-mode-border {
+            border: 2px dashed #3b82f6;
+        }
+
+        input[type="password"] {
+            letter-spacing: 0.3em;
+        }
+        
+        .toast {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 0.75rem 1.5rem;
+            border-radius: 9999px;
+            color: white;
+            font-size: 0.875rem;
+            font-weight: 500;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            z-index: 100;
+            white-space: nowrap;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+        @media (min-width: 768px) {
+            .toast { left: auto; right: 20px; transform: none; font-size: 1rem; border-radius: 0.5rem; }
+        }
+        .toast.show { opacity: 1; }
+        .toast.success { background-color: #10b981; }
+        .toast.error { background-color: #ef4444; }
+        .toast.info { background-color: #3b82f6; }
+
+        /* 自定義滾動條 */
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: #f1f1f1; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col relative">
+
+    <header class="glass-panel sticky top-0 z-40">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-14 md:h-16 flex items-center justify-between">
+            <div class="flex items-center gap-2 md:gap-3">
+                <i class="fa-solid fa-gamepad text-xl md:text-2xl text-blue-600"></i>
+                <h1 class="text-lg md:text-xl font-bold text-gray-800">明日之後小秘書</h1>
+                <span id="cloudStatus" class="ml-2 text-xs text-blue-500 hidden animate-pulse" title="雲端同步中">
+                    <i class="fa-solid fa-cloud-arrow-up"></i>
+                </span>
+            </div>
             
-            <div class="glass-effect rounded-2xl p-8 mb-8 text-center">
-                <div class="text-sm font-bold text-indigo-500 tracking-widest uppercase mb-2">Core Position</div>
-                <div class="text-2xl font-medium text-slate-800 mb-4">輕量化、跨裝置、高度自定義的遊戲輔助儀表板</div>
-                <p class="text-slate-600 max-w-2xl mx-auto">為了解決遊戲中多種統計資料（如食譜、市場、核芯）分散在不同試算表或網頁的問題，我們將零散的資訊連結整合進一個美觀、具備管理權限的單一入口。</p>
+            <div class="flex items-center gap-3 md:gap-4">
+                <span id="adminStatus" class="text-xs md:text-sm font-medium text-gray-500 hidden flex items-center">
+                    <i class="fa-solid fa-shield-halved text-blue-500 mr-1"></i><span class="hidden sm:inline">管理員模式</span>
+                </span>
+                <button id="loginBtn" onclick="openLoginModal()" class="text-gray-600 hover:text-blue-600 transition-colors p-2">
+                    <i class="fa-solid fa-user-lock text-lg md:text-xl"></i>
+                </button>
+                <button id="logoutBtn" onclick="logout()" class="text-red-500 hover:text-red-700 transition-colors hidden p-2" title="登出">
+                    <i class="fa-solid fa-right-from-bracket text-lg md:text-xl"></i>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main class="flex-grow max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 md:py-8 w-full">
+        <div class="mb-6 md:mb-8">
+            <h2 class="text-xl md:text-2xl font-bold text-gray-800 mb-2">功能儀表板</h2>
+            <p class="text-sm md:text-base text-gray-500">點擊卡片連結進入統計頁面。（編輯連結需登入管理員）</p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6" id="featureGrid">
+            <!-- 模組卡片 -->
+            <div id="card-activity" class="glass-panel rounded-xl p-5 md:p-6 feature-card flex flex-col h-full relative group">
+                <div class="flex items-start justify-between mb-3 md:mb-4">
+                    <div class="p-2.5 md:p-3 bg-indigo-100 text-indigo-600 rounded-lg">
+                        <i class="fa-solid fa-calendar-check text-xl md:text-2xl"></i>
+                    </div>
+                    <button onclick="openLinkSettings('activity')" class="admin-only hidden text-gray-400 hover:text-blue-600 p-2 -m-2">
+                        <i class="fa-solid fa-gear"></i>
+                    </button>
+                </div>
+                <h3 class="text-base md:text-lg font-bold text-gray-800 mb-1 md:mb-2">活動記錄</h3>
+                <p class="text-gray-600 text-xs md:text-sm flex-grow mb-4">記錄日常任務與限時活動進度。</p>
+                <div class="space-y-2 mt-auto pt-3 border-t border-gray-100 link-container" id="links-activity">
+                    <span class="text-xs text-gray-400 flex items-center"><i class="fa-solid fa-spinner fa-spin mr-1"></i>載入中...</span>
+                </div>
             </div>
 
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <!-- 互動卡片 A -->
-                <div class="bg-white rounded-xl p-6 shadow-sm border border-slate-100 hover:shadow-md transition-shadow cursor-pointer group" onclick="toggleText(this, 'txt-mod')">
-                    <div class="text-3xl mb-4 group-hover:scale-110 transition-transform">🧩</div>
-                    <h3 class="font-bold text-slate-800 mb-2">A. 模組化設計</h3>
-                    <p class="text-sm text-slate-500">將每一個功能視為獨立卡片。</p>
-                    <div id="txt-mod" class="hidden mt-4 pt-4 border-t border-slate-100 text-sm text-slate-600">
-                        方便未來擴展新功能（如：莊園佈置、營地管理），而不需改動整體框架，確保系統高可擴充性。
+            <div id="card-core" class="glass-panel rounded-xl p-5 md:p-6 feature-card flex flex-col h-full relative group">
+                <div class="flex items-start justify-between mb-3 md:mb-4">
+                    <div class="p-2.5 md:p-3 bg-amber-100 text-amber-600 rounded-lg">
+                        <i class="fa-solid fa-gem text-xl md:text-2xl"></i>
                     </div>
+                    <button onclick="openLinkSettings('core')" class="admin-only hidden text-gray-400 hover:text-blue-600 p-2 -m-2">
+                        <i class="fa-solid fa-gear"></i>
+                    </button>
                 </div>
-                <!-- 互動卡片 B -->
-                <div class="bg-white rounded-xl p-6 shadow-sm border border-slate-100 hover:shadow-md transition-shadow cursor-pointer group" onclick="toggleText(this, 'txt-auth')">
-                    <div class="text-3xl mb-4 group-hover:scale-110 transition-transform">🔐</div>
-                    <h3 class="font-bold text-slate-800 mb-2">B. 雙層權限機制</h3>
-                    <p class="text-sm text-slate-500">訪客與管理員雙模式切換。</p>
-                    <div id="txt-auth" class="hidden mt-4 pt-4 border-t border-slate-100 text-sm text-slate-600">
-                        訪客僅能瀏覽，介面乾淨防誤觸；管理員透過隱藏入口登入，解鎖雲端參數的動態調整能力。
-                    </div>
-                </div>
-                <!-- 互動卡片 C -->
-                <div class="bg-white rounded-xl p-6 shadow-sm border border-slate-100 hover:shadow-md transition-shadow cursor-pointer group" onclick="toggleText(this, 'txt-sync')">
-                    <div class="text-3xl mb-4 group-hover:scale-110 transition-transform">☁️</div>
-                    <h3 class="font-bold text-slate-800 mb-2">C. 雲端同步與即時性</h3>
-                    <p class="text-sm text-slate-500">跨裝置無縫切換，資料持久化。</p>
-                    <div id="txt-sync" class="hidden mt-4 pt-4 border-t border-slate-100 text-sm text-slate-600">
-                        不使用 LocalStorage，全面採用 Firestore 儲存自訂連結，確保 PC 修改後手機端立即生效。
-                    </div>
+                <h3 class="text-base md:text-lg font-bold text-gray-800 mb-1 md:mb-2">核芯統計</h3>
+                <p class="text-gray-600 text-xs md:text-sm flex-grow mb-4">管理武器、護甲核芯庫存與升級。</p>
+                <div class="space-y-2 mt-auto pt-3 border-t border-gray-100 link-container" id="links-core">
+                    <span class="text-xs text-gray-400 flex items-center"><i class="fa-solid fa-spinner fa-spin mr-1"></i>載入中...</span>
                 </div>
             </div>
-        </section>
 
-        <!-- 區塊 2: 視覺體驗 -->
-        <section id="sec-design" class="mb-24 max-w-4xl mx-auto scroll-mt-24">
-            <h2 class="text-2xl font-bold text-slate-800 mb-4 border-b-2 border-amber-100 pb-2 flex items-center gap-2"><span>🎨</span> 視覺與體驗 (UI/UX)</h2>
-            <p class="text-slate-600 mb-8">本科幻末世氛圍要求高度的質感與清晰的資訊層級。您可以在此區塊動態調整「毛玻璃效果」參數，並測試「功能配色」在介面上的呈現。</p>
-
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                <!-- 實驗室 1: 毛玻璃 -->
-                <div class="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm">
-                    <h3 class="font-bold text-slate-800 mb-4">毛玻璃實驗室 (Glassmorphism)</h3>
-                    
-                    <div class="relative w-full h-48 rounded-xl overflow-hidden mb-6 bg-slate-800 flex items-center justify-center bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0MCIgaGVpZ2h0PSI0MCI+PHBhdGggZD0iTTAgMGg0MHY0MEgweiIgZmlsbD0ibm9uZSIvPjxjaXJjbGUgY3g9IjIwIiBjeT0iMjAiIHI9IjIiIGZpbGw9InJnYmEoMjU1LDI1NSwyNTUsMC4yKSIvPjwvc3ZnPg==')]">
-                        <div class="absolute inset-0 bg-gradient-to-br from-indigo-500/30 to-emerald-500/30"></div>
-                        <div id="glass-demo-card" class="glass-effect-dark w-4/5 h-3/4 rounded-lg flex items-center justify-center text-white/90 font-medium z-10 transition-all duration-300">
-                            預覽面板
-                        </div>
+            <div id="card-recipe" class="glass-panel rounded-xl p-5 md:p-6 feature-card flex flex-col h-full relative group">
+                <div class="flex items-start justify-between mb-3 md:mb-4">
+                    <div class="p-2.5 md:p-3 bg-emerald-100 text-emerald-600 rounded-lg">
+                        <i class="fa-solid fa-utensils text-xl md:text-2xl"></i>
                     </div>
-
-                    <div class="space-y-4">
-                        <div>
-                            <div class="flex justify-between text-xs text-slate-500 mb-1">
-                                <label>背景模糊度 (Blur)</label>
-                                <span id="val-blur">12px</span>
-                            </div>
-                            <input type="range" min="0" max="24" value="12" class="w-full accent-indigo-500" oninput="updateGlass(this.value, 'blur')">
-                        </div>
-                        <div>
-                            <div class="flex justify-between text-xs text-slate-500 mb-1">
-                                <label>背景透明度 (Opacity)</label>
-                                <span id="val-opacity">0.6</span>
-                            </div>
-                            <input type="range" min="0" max="100" value="60" class="w-full accent-indigo-500" oninput="updateGlass(this.value, 'opacity')">
-                        </div>
-                    </div>
+                    <button onclick="openLinkSettings('recipe')" class="admin-only hidden text-gray-400 hover:text-blue-600 p-2 -m-2">
+                        <i class="fa-solid fa-gear"></i>
+                    </button>
                 </div>
-
-                <!-- 實驗室 2: 語意配色 -->
-                <div class="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm">
-                    <h3 class="font-bold text-slate-800 mb-4">功能語意配色 (Semantic Colors)</h3>
-                    <p class="text-sm text-slate-600 mb-4">點擊下方色塊，觀察主題配色如何套用於功能卡片。</p>
-                    
-                    <div class="grid grid-cols-4 gap-2 mb-6">
-                        <button onclick="applyTheme('indigo', '活動記錄', '穩定')" class="h-12 rounded bg-indigo-500 hover:ring-2 ring-offset-2 ring-indigo-500 transition-all" title="活動記錄"></button>
-                        <button onclick="applyTheme('amber', '核芯統計', '珍稀')" class="h-12 rounded bg-amber-500 hover:ring-2 ring-offset-2 ring-amber-500 transition-all" title="核芯統計"></button>
-                        <button onclick="applyTheme('emerald', '食譜統計', '生活')" class="h-12 rounded bg-emerald-500 hover:ring-2 ring-offset-2 ring-emerald-500 transition-all" title="食譜統計"></button>
-                        <button onclick="applyTheme('blue', '市場交易', '商務')" class="h-12 rounded bg-blue-500 hover:ring-2 ring-offset-2 ring-blue-500 transition-all" title="市場交易"></button>
-                    </div>
-
-                    <div id="theme-preview-card" class="rounded-xl border-2 border-indigo-100 p-5 bg-indigo-50 transition-colors duration-300">
-                        <div class="flex justify-between items-start mb-2">
-                            <div id="theme-icon-container" class="w-10 h-10 rounded-lg flex items-center justify-center bg-indigo-100 text-indigo-600 transition-colors duration-300 text-xl">
-                                ✦
-                            </div>
-                            <span id="theme-tag" class="text-xs font-bold text-indigo-500 uppercase tracking-wide transition-colors duration-300">穩定</span>
-                        </div>
-                        <h4 id="theme-title" class="font-bold text-slate-800 text-lg">活動記錄</h4>
-                        <div id="theme-line" class="w-8 h-1 bg-indigo-500 rounded mt-2 transition-colors duration-300"></div>
-                    </div>
+                <h3 class="text-base md:text-lg font-bold text-gray-800 mb-1 md:mb-2">食譜統計</h3>
+                <p class="text-gray-600 text-xs md:text-sm flex-grow mb-4">全食譜配方、增益效果與食材庫存。</p>
+                <div class="space-y-2 mt-auto pt-3 border-t border-gray-100 link-container" id="links-recipe">
+                    <span class="text-xs text-gray-400 flex items-center"><i class="fa-solid fa-spinner fa-spin mr-1"></i>載入中...</span>
                 </div>
             </div>
-        </section>
 
-        <!-- 區塊 3: 技術架構 -->
-        <section id="sec-tech" class="mb-24 max-w-4xl mx-auto scroll-mt-24">
-            <h2 class="text-2xl font-bold text-slate-800 mb-4 border-b-2 border-emerald-100 pb-2 flex items-center gap-2"><span>⚙️</span> 技術架構建議</h2>
-            <p class="text-slate-600 mb-8">為了達成「輕快」與「雲端同步」的要求，本系統採用無伺服器架構。將滑鼠懸停於各層級，查看其負責之工作與選型理由。</p>
-
-            <div class="flex flex-col gap-4 relative">
-                
-                <!-- 第一層: 前端 -->
-                <div class="w-full bg-slate-50 border-2 border-slate-200 rounded-xl p-6 relative group transition-all hover:border-indigo-400 hover:bg-indigo-50">
-                    <div class="flex items-center justify-between mb-2">
-                        <h3 class="font-bold text-slate-800 group-hover:text-indigo-700 transition-colors">1. 前端框架層 (Frontend)</h3>
-                        <span class="text-xs font-bold bg-slate-200 text-slate-600 px-2 py-1 rounded group-hover:bg-indigo-200 group-hover:text-indigo-800 transition-colors">HTML5 + Tailwind + JS</span>
+            <div id="card-species" class="glass-panel rounded-xl p-5 md:p-6 feature-card flex flex-col h-full relative group">
+                <div class="flex items-start justify-between mb-3 md:mb-4">
+                    <div class="p-2.5 md:p-3 bg-green-100 text-green-700 rounded-lg">
+                        <i class="fa-solid fa-leaf text-xl md:text-2xl"></i>
                     </div>
-                    <p class="text-sm text-slate-500 mb-0">負責所有視覺渲染與邏輯互動。</p>
-                    <div class="h-0 overflow-hidden opacity-0 group-hover:h-auto group-hover:opacity-100 group-hover:mt-4 transition-all duration-300 text-sm text-slate-700 bg-white p-3 rounded shadow-sm">
-                        <strong>選型理由：</strong>遊戲輔助工具首重「快」，Tailwind 能確保 CSS 體積最小且快速開發。原生 JS 即可滿足動態 DOM 生成需求。
-                    </div>
+                    <button onclick="openLinkSettings('species')" class="admin-only hidden text-gray-400 hover:text-blue-600 p-2 -m-2">
+                        <i class="fa-solid fa-gear"></i>
+                    </button>
                 </div>
-
-                <div class="flex justify-center -my-2 z-10">
-                    <div class="bg-white border border-slate-200 rounded-full px-3 py-1 text-xs text-slate-400 shadow-sm">API 雙向綁定</div>
-                </div>
-
-                <!-- 第二層: 驗證 -->
-                <div class="w-full bg-slate-50 border-2 border-slate-200 rounded-xl p-6 relative group transition-all hover:border-amber-400 hover:bg-amber-50">
-                    <div class="flex items-center justify-between mb-2">
-                        <h3 class="font-bold text-slate-800 group-hover:text-amber-700 transition-colors">2. 身份驗證層 (Authentication)</h3>
-                        <span class="text-xs font-bold bg-slate-200 text-slate-600 px-2 py-1 rounded group-hover:bg-amber-200 group-hover:text-amber-800 transition-colors">Firebase Anonymous Auth</span>
-                    </div>
-                    <p class="text-sm text-slate-500 mb-0">管理權限與隔離資料空間。</p>
-                    <div class="h-0 overflow-hidden opacity-0 group-hover:h-auto group-hover:opacity-100 group-hover:mt-4 transition-all duration-300 text-sm text-slate-700 bg-white p-3 rounded shadow-sm">
-                        <strong>核心目的：</strong>確保每個使用者即使不註冊帳號，也能在系統內擁有獨立的資料空間。
-                    </div>
-                </div>
-
-                <div class="flex justify-center -my-2 z-10">
-                    <div class="bg-white border border-slate-200 rounded-full px-3 py-1 text-xs text-slate-400 shadow-sm">安全規則防護</div>
-                </div>
-
-                <!-- 第三層: 資料庫 -->
-                <div class="w-full bg-slate-50 border-2 border-slate-200 rounded-xl p-6 relative group transition-all hover:border-blue-400 hover:bg-blue-50">
-                    <div class="flex items-center justify-between mb-2">
-                        <h3 class="font-bold text-slate-800 group-hover:text-blue-700 transition-colors">3. 資料庫與儲存層 (Database)</h3>
-                        <span class="text-xs font-bold bg-slate-200 text-slate-600 px-2 py-1 rounded group-hover:bg-blue-200 group-hover:text-blue-800 transition-colors">Firebase Firestore</span>
-                    </div>
-                    <p class="text-sm text-slate-500 mb-0">儲存所有自訂連結配置陣列。</p>
-                    <div class="h-0 overflow-hidden opacity-0 group-hover:h-auto group-hover:opacity-100 group-hover:mt-4 transition-all duration-300 text-sm text-slate-700 bg-white p-3 rounded shadow-sm">
-                        <strong>資料結構：</strong><br>
-                        <code>Collection: artifacts</code> &rarr; <code>Document: appId</code> &rarr; <code>Field: linkData (Array)</code>
-                    </div>
+                <h3 class="text-base md:text-lg font-bold text-gray-800 mb-1 md:mb-2">物種筆記</h3>
+                <p class="text-gray-600 text-xs md:text-sm flex-grow mb-4">記錄圖鑑物、怪物分佈與掉落。</p>
+                <div class="space-y-2 mt-auto pt-3 border-t border-gray-100 link-container" id="links-species">
+                    <span class="text-xs text-gray-400 flex items-center"><i class="fa-solid fa-spinner fa-spin mr-1"></i>載入中...</span>
                 </div>
             </div>
-        </section>
 
-        <!-- 區塊 4: 開發清單 -->
-        <section id="sec-progress" class="mb-12 max-w-4xl mx-auto scroll-mt-24">
-            <h2 class="text-2xl font-bold text-slate-800 mb-4 border-b-2 border-slate-200 pb-2 flex items-center gap-2"><span>✓</span> 開發核心功能清單</h2>
-            <p class="text-slate-600 mb-8">此區塊提供互動式的待辦清單，展示各項核心功能的實作狀態。點擊核取方塊可動態更新圖表進度。</p>
-
-            <div class="bg-white rounded-2xl p-6 md:p-8 border border-slate-200 shadow-sm flex flex-col md:flex-row gap-8 items-center">
-                
-                <!-- 清單列表 -->
-                <div class="w-full md:w-3/5">
-                    <ul class="space-y-3" id="checklist">
-                        <li class="flex items-start gap-3 p-3 rounded-lg hover:bg-slate-50 transition-colors border border-transparent hover:border-slate-100">
-                            <input type="checkbox" class="feature-checkbox mt-1 w-5 h-5 accent-emerald-500 cursor-pointer" checked onchange="updateProgressChart()">
-                            <div>
-                                <div class="font-bold text-slate-800 text-sm">隱藏式 Admin 介面</div>
-                                <div class="text-xs text-slate-500 mt-1">密碼驗證邏輯（不顯示明碼）。</div>
-                            </div>
-                        </li>
-                        <li class="flex items-start gap-3 p-3 rounded-lg hover:bg-slate-50 transition-colors border border-transparent hover:border-slate-100">
-                            <input type="checkbox" class="feature-checkbox mt-1 w-5 h-5 accent-emerald-500 cursor-pointer" checked onchange="updateProgressChart()">
-                            <div>
-                                <div class="font-bold text-slate-800 text-sm">動態 DOM 生成</div>
-                                <div class="text-xs text-slate-500 mt-1">連結清單必須根據雲端資料動態產出按鈕。</div>
-                            </div>
-                        </li>
-                        <li class="flex items-start gap-3 p-3 rounded-lg hover:bg-slate-50 transition-colors border border-transparent hover:border-slate-100">
-                            <input type="checkbox" class="feature-checkbox mt-1 w-5 h-5 accent-emerald-500 cursor-pointer" onchange="updateProgressChart()">
-                            <div>
-                                <div class="font-bold text-slate-800 text-sm">自動 URL 補完</div>
-                                <div class="text-xs text-slate-500 mt-1">偵測網址是否包含 http，若無則自動補上。</div>
-                            </div>
-                        </li>
-                        <li class="flex items-start gap-3 p-3 rounded-lg hover:bg-slate-50 transition-colors border border-transparent hover:border-slate-100">
-                            <input type="checkbox" class="feature-checkbox mt-1 w-5 h-5 accent-emerald-500 cursor-pointer" onchange="updateProgressChart()">
-                            <div>
-                                <div class="font-bold text-slate-800 text-sm">資料合法性檢查</div>
-                                <div class="text-xs text-slate-500 mt-1">確保空連結不會顯示在主畫面上。</div>
-                            </div>
-                        </li>
-                        <li class="flex items-start gap-3 p-3 rounded-lg hover:bg-slate-50 transition-colors border border-transparent hover:border-slate-100">
-                            <input type="checkbox" class="feature-checkbox mt-1 w-5 h-5 accent-emerald-500 cursor-pointer" checked onchange="updateProgressChart()">
-                            <div>
-                                <div class="font-bold text-slate-800 text-sm">狀態提示 (Toast)</div>
-                                <div class="text-xs text-slate-500 mt-1">任何儲存、報錯動作都必須有浮動提示。</div>
-                            </div>
-                        </li>
-                    </ul>
-                </div>
-
-                <!-- 圖表呈現 -->
-                <div class="w-full md:w-2/5 flex flex-col items-center justify-center">
-                    <div class="chart-container">
-                        <canvas id="progressChart"></canvas>
+            <div id="card-market" class="glass-panel rounded-xl p-5 md:p-6 feature-card flex flex-col h-full relative group">
+                <div class="flex items-start justify-between mb-3 md:mb-4">
+                    <div class="p-2.5 md:p-3 bg-blue-100 text-blue-600 rounded-lg">
+                        <i class="fa-solid fa-coins text-xl md:text-2xl"></i>
                     </div>
-                    <div class="mt-4 text-center">
-                        <div class="text-3xl font-bold text-slate-800" id="progress-text">0%</div>
-                        <div class="text-xs text-slate-500 uppercase tracking-widest mt-1">完成率</div>
-                    </div>
+                    <button onclick="openLinkSettings('market')" class="admin-only hidden text-gray-400 hover:text-blue-600 p-2 -m-2">
+                        <i class="fa-solid fa-gear"></i>
+                    </button>
                 </div>
-
+                <h3 class="text-base md:text-lg font-bold text-gray-800 mb-1 md:mb-2">市場交易</h3>
+                <p class="text-gray-600 text-xs md:text-sm flex-grow mb-4">物價趨勢、利潤計算與市場備忘。</p>
+                <div class="space-y-2 mt-auto pt-3 border-t border-gray-100 link-container" id="links-market">
+                    <span class="text-xs text-gray-400 flex items-center"><i class="fa-solid fa-spinner fa-spin mr-1"></i>載入中...</span>
+                </div>
             </div>
-        </section>
+        </div>
     </main>
-</div>
 
-<script>
-/** 頁面捲動控制 **/
-function scrollToSection(id) {
-    document.getElementById(id).scrollIntoView({ behavior: 'smooth' });
-}
+    <footer class="text-center py-6 text-gray-500 text-xs md:text-sm border-t border-gray-200 mt-auto">
+        <p>Design by 夜雨 &copy; 2026 明日之後小秘書 (多連結同步版)</p>
+    </footer>
 
-/** 側邊欄導航選取狀態更新 (Intersection Observer) **/
-const navButtons = document.querySelectorAll('.nav-btn');
-const sections = document.querySelectorAll('section');
+    <!-- 登入 Modal -->
+    <div id="loginModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm hidden items-center justify-center z-50 p-4">
+        <div class="glass-panel rounded-2xl p-6 md:p-8 max-w-sm w-full transform transition-all scale-95 opacity-0" id="loginModalContent">
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="text-lg font-bold text-gray-800"><i class="fa-solid fa-lock text-blue-600 mr-2"></i>管理員登入</h3>
+                <button onclick="closeLoginModal()" class="text-gray-400 hover:text-gray-600 p-2">
+                    <i class="fa-solid fa-xmark text-xl"></i>
+                </button>
+            </div>
+            <div class="mb-6">
+                <input type="password" id="adminPassword" class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 outline-none text-center text-xl" placeholder="••••" maxlength="4" onkeypress="handleLoginKeyPress(event)">
+                <p id="loginError" class="text-red-500 text-xs mt-2 hidden text-center">密碼錯誤</p>
+            </div>
+            <button onclick="attemptLogin()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 rounded-lg transition-colors">解鎖功能</button>
+        </div>
+    </div>
 
-const observerOptions = { root: null, rootMargin: '0px', threshold: 0.5 };
-const observer = new IntersectionObserver((entries) => {
-    entries.forEach(entry => {
-        if (entry.isIntersecting) {
-            const id = entry.target.id;
-            navButtons.forEach(btn => {
-                if (btn.dataset.target === id) {
-                    btn.classList.replace('bg-transparent', 'bg-indigo-50');
-                    btn.classList.replace('text-slate-600', 'text-indigo-700');
+    <!-- 連結設定 Modal -->
+    <div id="linkSettingsModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm hidden items-center justify-center z-50 p-4">
+        <div class="glass-panel rounded-2xl p-6 md:p-8 max-w-2xl w-full max-h-[90vh] flex flex-col transform transition-all scale-95 opacity-0" id="linkModalContent">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-lg md:text-xl font-bold text-gray-800">
+                    <i class="fa-solid fa-gear text-blue-600 mr-2"></i>設定連結 - <span id="settingModuleName" class="text-blue-600"></span>
+                </h3>
+                <button onclick="closeLinkSettings()" class="text-gray-400 hover:text-gray-600 p-2">
+                    <i class="fa-solid fa-xmark text-xl"></i>
+                </button>
+            </div>
+            
+            <div id="linkRowsContainer" class="flex-grow overflow-y-auto custom-scrollbar space-y-4 pr-2 mb-6">
+                <!-- 連結編輯列由 JS 生成 -->
+            </div>
+
+            <div class="flex flex-col sm:flex-row justify-between gap-3 pt-4 border-t border-gray-100">
+                <button onclick="addLinkRow()" class="flex items-center justify-center gap-2 px-4 py-2 border-2 border-dashed border-blue-400 text-blue-600 rounded-lg hover:bg-blue-50 transition-colors font-medium">
+                    <i class="fa-solid fa-plus"></i> 新增連結
+                </button>
+                <div class="flex gap-2">
+                    <button onclick="closeLinkSettings()" class="px-6 py-2 bg-gray-100 text-gray-600 rounded-lg font-medium">取消</button>
+                    <button onclick="saveLinkSettings()" class="px-6 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700">儲存所有設定</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="toast" class="toast"><span id="toastMsg"></span></div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // 狀態與基礎配置
+        let isAdmin = false;
+        const SECRET_PIN = "1491";
+        let currentEditingModule = '';
+        const moduleNames = { 'activity': '活動記錄', 'core': '核芯統計', 'recipe': '食譜統計', 'species': '物種筆記', 'market': '市場交易' };
+        let linkSettingsData = { activity: [], core: [], recipe: [], species: [], market: [] };
+
+        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-after-tomorrow-app';
+
+        /**
+         * 身份驗證初始化 (重要：需確保在讀取資料前完成)
+         */
+        const initApp = async () => {
+            try {
+                // 優先嘗試使用 Custom Token，否則使用匿名登入
+                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                    await signInWithCustomToken(auth, __initial_auth_token);
                 } else {
-                    btn.classList.replace('bg-indigo-50', 'bg-transparent');
-                    btn.classList.replace('text-indigo-700', 'text-slate-600');
+                    await signInAnonymously(auth);
+                }
+            } catch (err) {
+                console.error("Auth Error:", err);
+                showToast("身份驗證失敗，請檢查網路連線", "error");
+            }
+        };
+
+        // 啟動驗證
+        initApp();
+
+        // 當驗證狀態改變時，啟動資料監聽
+        onAuthStateChanged(auth, (user) => {
+            if (!user) return; // 尚未登入完成前不執行任何 Firestore 操作
+            
+            const settingsRef = doc(db, 'artifacts', appId, 'public', 'data', 'settings', 'linkData');
+            
+            // 監聽雲端資料，並增加錯誤處理回調 (防範 Permission Denied)
+            onSnapshot(settingsRef, (docSnap) => {
+                if (docSnap.exists()) {
+                    const data = docSnap.data();
+                    Object.keys(moduleNames).forEach(k => {
+                        linkSettingsData[k] = Array.isArray(data[k]) ? data[k] : [];
+                    });
+                }
+                renderAllModuleLinks();
+            }, (error) => {
+                console.error("Firestore Error:", error);
+                if (error.code === 'permission-denied') {
+                    showToast("讀取權限不足，請重新整理頁面", "error");
+                }
+            });
+        });
+
+        // 渲染主畫面按鈕
+        function renderAllModuleLinks() {
+            Object.keys(moduleNames).forEach(moduleId => {
+                const container = document.getElementById(`links-${moduleId}`);
+                if (!container) return;
+                
+                const links = linkSettingsData[moduleId];
+                if (!links || links.length === 0) {
+                    container.innerHTML = `<span class="text-xs text-gray-400 flex items-center"><i class="fa-solid fa-circle-xmark text-red-300 mr-1"></i>尚未設定連結</span>`;
+                } else {
+                    container.innerHTML = links.map((link) => `
+                        <button onclick="window.openLink('${link.url}')" class="w-full text-left px-3 py-2 bg-white border border-gray-200 rounded-lg hover:border-blue-400 hover:text-blue-600 transition-all text-sm font-medium flex justify-between items-center group">
+                            <span>${link.name || '進入統計'}</span>
+                            <i class="fa-solid fa-chevron-right text-xs opacity-0 group-hover:opacity-100 transition-opacity"></i>
+                        </button>
+                    `).join('');
                 }
             });
         }
-    });
-}, observerOptions);
-sections.forEach(sec => observer.observe(sec));
 
-/** 核心原則文字切換 **/
-function toggleText(element, targetId) {
-    const target = document.getElementById(targetId);
-    target.classList.toggle('hidden');
-    element.classList.toggle('ring-2');
-    element.classList.toggle('ring-indigo-200');
-}
+        window.openLink = (url) => {
+            if (!url) return;
+            let fullUrl = url.startsWith('http') ? url : 'https://' + url;
+            window.open(fullUrl, '_blank');
+        };
 
-/** 毛玻璃特效動態更新 **/
-function updateGlass(value, type) {
-    const card = document.getElementById('glass-demo-card');
-    let blurVal = type === 'blur' ? value : card.style.backdropFilter.match(/\d+/)[0];
-    let opacityVal = type === 'opacity' ? value / 100 : card.style.backgroundColor.match(/0\.\d+/)[0];
+        // --- 設定視窗邏輯 ---
+        window.openLinkSettings = function(moduleId) {
+            currentEditingModule = moduleId;
+            document.getElementById('settingModuleName').textContent = moduleNames[moduleId];
+            const container = document.getElementById('linkRowsContainer');
+            container.innerHTML = '';
+            
+            const currentLinks = linkSettingsData[moduleId] || [];
+            currentLinks.forEach((link) => addLinkRowUI(link));
+            if (currentLinks.length === 0) addLinkRowUI();
 
-    card.style.backdropFilter = `blur(${blurVal}px)`;
-    card.style.webkitBackdropFilter = `blur(${blurVal}px)`;
-    card.style.backgroundColor = `rgba(15, 23, 42, ${opacityVal})`;
-    
-    document.getElementById(`val-${type}`).innerText = type === 'blur' ? `${value}px` : opacityVal;
-}
+            const modal = document.getElementById('linkSettingsModal');
+            const content = document.getElementById('linkModalContent');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            setTimeout(() => content.classList.add('scale-100', 'opacity-100'), 10);
+        };
 
-/** 語意配色切換 **/
-const themes = {
-    indigo: { bg: 'bg-indigo-50', border: 'border-indigo-100', text: 'text-indigo-600', iconBg: 'bg-indigo-100', line: 'bg-indigo-500', tag: 'text-indigo-500' },
-    amber: { bg: 'bg-amber-50', border: 'border-amber-100', text: 'text-amber-600', iconBg: 'bg-amber-100', line: 'bg-amber-500', tag: 'text-amber-500' },
-    emerald: { bg: 'bg-emerald-50', border: 'border-emerald-100', text: 'text-emerald-600', iconBg: 'bg-emerald-100', line: 'bg-emerald-500', tag: 'text-emerald-500' },
-    blue: { bg: 'bg-blue-50', border: 'border-blue-100', text: 'text-blue-600', iconBg: 'bg-blue-100', line: 'bg-blue-500', tag: 'text-blue-500' }
-};
+        window.addLinkRow = () => addLinkRowUI();
 
-function applyTheme(colorKey, title, tag) {
-    const card = document.getElementById('theme-preview-card');
-    const iconContainer = document.getElementById('theme-icon-container');
-    const tagEl = document.getElementById('theme-tag');
-    const titleEl = document.getElementById('theme-title');
-    const lineEl = document.getElementById('theme-line');
-    const t = themes[colorKey];
-
-    card.className = `rounded-xl border-2 p-5 transition-colors duration-300 ${t.border} ${t.bg}`;
-    iconContainer.className = `w-10 h-10 rounded-lg flex items-center justify-center transition-colors duration-300 text-xl ${t.iconBg} ${t.text}`;
-    tagEl.className = `text-xs font-bold uppercase tracking-wide transition-colors duration-300 ${t.tag}`;
-    lineEl.className = `w-8 h-1 rounded mt-2 transition-colors duration-300 ${t.line}`;
-    titleEl.innerText = title;
-    tagEl.innerText = tag;
-}
-
-/** Chart.js 進度圖表邏輯 **/
-let progressChartInstance = null;
-
-function initProgressChart() {
-    const ctx = document.getElementById('progressChart').getContext('2d');
-    progressChartInstance = new Chart(ctx, {
-        type: 'doughnut',
-        data: {
-            labels: ['已完成', '待開發'],
-            datasets: [{
-                data: [0, 5],
-                backgroundColor: ['#10b981', '#e2e8f0'],
-                borderWidth: 0
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            cutout: '75%',
-            plugins: { legend: { display: false } }
+        function addLinkRowUI(data = { name: '', url: '', type: 'url' }) {
+            const container = document.getElementById('linkRowsContainer');
+            const row = document.createElement('div');
+            row.className = "p-4 bg-gray-50 rounded-xl border border-gray-200 relative link-row-item";
+            row.innerHTML = `
+                <button onclick="this.parentElement.remove()" class="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center text-xs shadow-sm hover:bg-red-600">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <div class="md:col-span-1">
+                        <label class="block text-xs font-bold text-gray-500 mb-1">連結名稱</label>
+                        <input type="text" class="link-name w-full px-3 py-2 rounded border border-gray-300 text-sm focus:ring-1 focus:ring-blue-500 outline-none" placeholder="例如：本週採集攻略" value="${data.name}">
+                    </div>
+                    <div class="md:col-span-1">
+                        <label class="block text-xs font-bold text-gray-500 mb-1">類型</label>
+                        <select class="link-type w-full px-3 py-2 rounded border border-gray-300 text-sm focus:ring-1 focus:ring-blue-500 outline-none">
+                            <option value="url" ${data.type === 'url' ? 'selected' : ''}>網頁連結 (URL)</option>
+                            <option value="sheets" ${data.type === 'sheets' ? 'selected' : ''}>Google 試算表</option>
+                        </select>
+                    </div>
+                    <div class="md:col-span-2">
+                        <label class="block text-xs font-bold text-gray-500 mb-1">連結 URL</label>
+                        <input type="text" class="link-url w-full px-3 py-2 rounded border border-gray-300 text-sm font-mono focus:ring-1 focus:ring-blue-500 outline-none" placeholder="https://..." value="${data.url}">
+                    </div>
+                </div>
+            `;
+            container.appendChild(row);
         }
-    });
-    updateProgressChart();
-}
 
-function updateProgressChart() {
-    const checkboxes = document.querySelectorAll('.feature-checkbox');
-    const total = checkboxes.length;
-    let checkedCount = 0;
-    checkboxes.forEach(cb => { if (cb.checked) checkedCount++; });
+        window.saveLinkSettings = async function() {
+            if (!auth.currentUser) {
+                showToast("尚未完成連線，請稍後再試", "error");
+                return;
+            }
 
-    const percentage = Math.round((checkedCount / total) * 100);
-    if (progressChartInstance) {
-        progressChartInstance.data.datasets[0].data = [checkedCount, total - checkedCount];
-        progressChartInstance.data.datasets[0].backgroundColor[0] = percentage === 100 ? '#6366f1' : '#10b981';
-        progressChartInstance.update();
-    }
-    document.getElementById('progress-text').innerText = `${percentage}%`;
-}
+            const rows = document.querySelectorAll('.link-row-item');
+            const newLinks = [];
+            
+            rows.forEach(row => {
+                const name = row.querySelector('.link-name').value.trim();
+                const url = row.querySelector('.link-url').value.trim();
+                const type = row.querySelector('.link-type').value;
+                if (url) newLinks.push({ name: name || '進入統計', url, type });
+            });
 
-document.addEventListener('DOMContentLoaded', initProgressChart);
-</script>
+            const cloudStatus = document.getElementById('cloudStatus');
+            cloudStatus.classList.remove('hidden');
+
+            try {
+                const settingsRef = doc(db, 'artifacts', appId, 'public', 'data', 'settings', 'linkData');
+                const updateData = { ...linkSettingsData, [currentEditingModule]: newLinks };
+                await setDoc(settingsRef, updateData, { merge: true });
+                window.closeLinkSettings();
+                showToast(`已同步 ${newLinks.length} 個連結 ☁️`, 'success');
+            } catch (error) {
+                console.error("Save Error:", error);
+                showToast(`儲存失敗：${error.code}`, 'error');
+            } finally {
+                cloudStatus.classList.add('hidden');
+            }
+        };
+
+        window.closeLinkSettings = function() {
+            const modal = document.getElementById('linkSettingsModal');
+            const content = document.getElementById('linkModalContent');
+            content.classList.remove('scale-100', 'opacity-100');
+            setTimeout(() => modal.classList.add('hidden'), 300);
+        };
+
+        // --- 管理登入邏輯 ---
+        window.openLoginModal = function() {
+            if (isAdmin) return;
+            const modal = document.getElementById('loginModal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            setTimeout(() => document.getElementById('loginModalContent').classList.add('scale-100', 'opacity-100'), 10);
+            document.getElementById('adminPassword').focus();
+        };
+
+        window.closeLoginModal = function() {
+            const content = document.getElementById('loginModalContent');
+            content.classList.remove('scale-100', 'opacity-100');
+            setTimeout(() => document.getElementById('loginModal').classList.add('hidden'), 300);
+        };
+
+        window.attemptLogin = function() {
+            const input = document.getElementById('adminPassword').value;
+            if (input === SECRET_PIN) {
+                isAdmin = true;
+                updateUIPermissions();
+                window.closeLoginModal();
+                showToast('已解鎖管理權限', 'success');
+            } else {
+                const err = document.getElementById('loginError');
+                err.classList.remove('hidden');
+                setTimeout(() => err.classList.add('hidden'), 2000);
+            }
+        };
+
+        window.logout = function() { isAdmin = false; updateUIPermissions(); showToast('已登出', 'info'); };
+        window.handleLoginKeyPress = (e) => e.key === 'Enter' && window.attemptLogin();
+
+        function updateUIPermissions() {
+            document.querySelectorAll('.admin-only').forEach(el => el.classList.toggle('hidden', !isAdmin));
+            document.getElementById('loginBtn').classList.toggle('hidden', isAdmin);
+            document.getElementById('logoutBtn').classList.toggle('hidden', !isAdmin);
+            document.getElementById('adminStatus').classList.toggle('hidden', !isAdmin);
+            document.querySelectorAll('.feature-card').forEach(c => c.classList.toggle('admin-mode-border', isAdmin));
+        }
+
+        function showToast(m, t) {
+            const toast = document.getElementById('toast');
+            document.getElementById('toastMsg').textContent = m;
+            toast.className = `toast show ${t}`;
+            setTimeout(() => toast.classList.remove('show'), 3000);
+        }
+
+        // 背景點擊關閉
+        window.onclick = function(event) {
+            if (event.target == document.getElementById('loginModal')) window.closeLoginModal();
+            if (event.target == document.getElementById('linkSettingsModal')) window.closeLinkSettings();
+        }
+    </script>
 </body>
 </html>
