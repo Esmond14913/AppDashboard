@@ -250,15 +250,23 @@
         let linkSettingsData = { activity: [], core: [], recipe: [], species: [], market: [] };
 
         const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
-        const app = initializeApp(firebaseConfig);
-        const auth = getAuth(app);
-        const db = getFirestore(app);
+        let app, auth, db;
+        try {
+            if (Object.keys(firebaseConfig).length > 0) {
+                app = initializeApp(firebaseConfig);
+                auth = getAuth(app);
+                db = getFirestore(app);
+            } else {
+                console.warn("尚未設定 Firebase Config，目前處於離線展示模式。");
+            }
+        } catch (e) { console.error(e); }
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-after-tomorrow-app';
 
         /**
          * 身份驗證初始化 (重要：需確保在讀取資料前完成)
          */
         const initApp = async () => {
+            if (!auth) return;
             try {
                 // 優先嘗試使用 Custom Token，否則使用匿名登入
                 if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
@@ -276,10 +284,11 @@
         initApp();
 
         // 當驗證狀態改變時，啟動資料監聽
-        onAuthStateChanged(auth, (user) => {
-            if (!user) return; // 尚未登入完成前不執行任何 Firestore 操作
-            
-            const settingsRef = doc(db, 'artifacts', appId, 'public', 'data', 'settings', 'linkData');
+        if (auth && db) {
+            onAuthStateChanged(auth, (user) => {
+                if (!user) return; // 尚未登入完成前不執行任何 Firestore 操作
+                
+                const settingsRef = doc(db, 'artifacts', appId, 'public', 'data', 'settings', 'linkData');
             
             // 監聽雲端資料，並增加錯誤處理回調 (防範 Permission Denied)
             onSnapshot(settingsRef, (docSnap) => {
@@ -296,7 +305,11 @@
                     showToast("讀取權限不足，請重新整理頁面", "error");
                 }
             });
-        });
+            });
+        } else {
+            // 離線模式：直接渲染預設狀態
+            setTimeout(renderAllModuleLinks, 500);
+        }
 
         // 渲染主畫面按鈕
         function renderAllModuleLinks() {
